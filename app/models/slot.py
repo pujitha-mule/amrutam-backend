@@ -15,7 +15,9 @@ class AvailabilitySlot(Base, TimestampedMixin):
     doctor_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    start_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     is_booked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

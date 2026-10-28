@@ -63,9 +63,7 @@ async def get_prescription(
 
     if user.role == "doctor":
         doctor = (
-            await db.execute(
-                select(Doctor).where(Doctor.user_id == user.id)
-            )
+            await db.execute(select(Doctor).where(Doctor.user_id == user.id))
         ).scalar_one_or_none()
 
         if not doctor or rx.doctor_id != doctor.id:

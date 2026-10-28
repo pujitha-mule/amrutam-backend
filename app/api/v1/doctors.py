@@ -2,10 +2,10 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import current_user, require_role
+from app.api.deps import require_role
 from app.core.db import get_session
 from app.core.errors import Forbidden
 from app.models.doctor import Doctor
@@ -34,7 +34,9 @@ async def search_doctors(
         stmt = stmt.where(Doctor.city == city)
     if language:
         stmt = stmt.where(Doctor.languages.any(language))
-    stmt = stmt.order_by(Doctor.specialty, Doctor.id).offset((page - 1) * page_size).limit(page_size)
+    stmt = (
+        stmt.order_by(Doctor.specialty, Doctor.id).offset((page - 1) * page_size).limit(page_size)
+    )
     rows = (await db.execute(stmt)).scalars().all()
     return rows
 

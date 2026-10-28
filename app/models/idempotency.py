@@ -13,7 +13,9 @@ class IdempotencyRecord(Base):
     __table_args__ = (UniqueConstraint("user_id", "key", name="uq_idem_user_key"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
     key: Mapped[str] = mapped_column(String(200), nullable=False)
     request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     response_status: Mapped[int | None] = mapped_column(Integer)

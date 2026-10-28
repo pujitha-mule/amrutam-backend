@@ -9,11 +9,13 @@ from app.core.logging import (
 
 
 def test_redact_sensitive_keys():
-    result = _redact({
-        "password": "secret",
-        "email": "user@example.com",
-        "name": "Test User",
-    })
+    result = _redact(
+        {
+            "password": "secret",
+            "email": "user@example.com",
+            "name": "Test User",
+        }
+    )
 
     assert result["password"] == "***"
     assert result["email"] == "***"
@@ -21,13 +23,15 @@ def test_redact_sensitive_keys():
 
 
 def test_redact_nested_dicts_and_lists():
-    result = _redact({
-        "profile": {
-            "phone": "1234567890",
-            "city": "Hyderabad",
-        },
-        "items": [{"token": "abc"}, {"value": "safe"}],
-    })
+    result = _redact(
+        {
+            "profile": {
+                "phone": "1234567890",
+                "city": "Hyderabad",
+            },
+            "items": [{"token": "abc"}, {"value": "safe"}],
+        }
+    )
 
     assert result["profile"]["phone"] == "***"
     assert result["profile"]["city"] == "Hyderabad"
@@ -67,6 +71,7 @@ def test_json_formatter_includes_exception():
         raise ValueError("test error")
     except ValueError:
         import sys
+
         exc_info = sys.exc_info()
 
     record = logging.LogRecord(

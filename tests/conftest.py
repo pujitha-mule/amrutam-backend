@@ -1,4 +1,3 @@
-
 import os
 import uuid
 
@@ -49,12 +48,8 @@ async def engine():
 
     try:
         async with eng.begin() as conn:
-            await conn.execute(
-                text("CREATE EXTENSION IF NOT EXISTS pgcrypto")
-            )
-            await conn.execute(
-                text("CREATE EXTENSION IF NOT EXISTS btree_gist")
-            )
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS btree_gist"))
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
 

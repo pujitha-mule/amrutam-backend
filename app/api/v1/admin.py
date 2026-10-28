@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -23,9 +23,9 @@ async def consultation_stats(
 ):
     stmt = select(Consultation.status, func.count()).group_by(Consultation.status)
     if from_:
-        stmt = stmt.where(Consultation.created_at >= datetime.combine(from_, datetime.min, timezone.utc))
+        stmt = stmt.where(Consultation.created_at >= datetime.combine(from_, datetime.min, UTC))
     if to:
-        stmt = stmt.where(Consultation.created_at <= datetime.combine(to, datetime.max, timezone.utc))
+        stmt = stmt.where(Consultation.created_at <= datetime.combine(to, datetime.max, UTC))
     rows = (await db.execute(stmt)).all()
     return {"by_status": {s: c for s, c in rows}}
 
@@ -36,6 +36,8 @@ async def payment_stats(
     _mfa: User = Depends(require_mfa),
     db: AsyncSession = Depends(get_session),
 ):
-    stmt = select(Payment.status, func.count(), func.coalesce(func.sum(Payment.amount), 0)).group_by(Payment.status)
+    stmt = select(
+        Payment.status, func.count(), func.coalesce(func.sum(Payment.amount), 0)
+    ).group_by(Payment.status)
     rows = (await db.execute(stmt)).all()
     return {"by_status": [{"status": s, "count": c, "total": float(t)} for s, c, t in rows]}

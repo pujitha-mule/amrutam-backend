@@ -1,6 +1,6 @@
-import uuid
+﻿import uuid
 
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,12 +21,15 @@ async def current_user(
     try:
         payload = decode_token(creds.credentials)
     except ValueError:
-        raise Unauthorized("invalid_token")
+        raise Unauthorized("invalid_token") from None
+
     if payload.get("type") != "access":
         raise Unauthorized("wrong_token_type")
+
     user = await db.get(User, uuid.UUID(payload["sub"]))
     if user is None or not user.is_active:
         raise Unauthorized("user_inactive")
+
     user._amr = payload.get("amr")
     return user
 
@@ -36,6 +39,7 @@ def require_role(*roles: str):
         if user.role not in roles:
             raise Forbidden("role_forbidden")
         return user
+
     return _dep
 
 

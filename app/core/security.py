@@ -2,11 +2,11 @@ import base64
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pyotp
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, VerificationError
+from argon2.exceptions import VerificationError, VerifyMismatchError
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from jose import JWTError, jwt
 
@@ -31,7 +31,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def create_access_token(user_id: str, role: str, amr: str) -> str:
@@ -73,10 +73,11 @@ def decode_token(token: str, secret: str = None) -> dict:
     try:
         return jwt.decode(token, secret or settings.JWT_SECRET, algorithms=["HS256"])
     except JWTError as e:
-        raise ValueError(f"invalid token: {e}")
+        raise ValueError(f"invalid token: {e}") from e
 
 
 # --- MFA secret encryption (AES-GCM) ---
+
 
 def _aes_key() -> bytes:
     return hashlib.sha256(settings.MFA_ENCRYPTION_KEY.encode()).digest()
@@ -100,6 +101,7 @@ def verify_totp(secret_plaintext: str, code: str) -> bool:
 
 
 # --- webhook HMAC ---
+
 
 def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:
     expected = hmac.new(

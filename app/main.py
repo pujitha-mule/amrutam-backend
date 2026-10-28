@@ -1,13 +1,13 @@
-﻿from contextlib import asynccontextmanager
+﻿
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from fastapi.responses import JSONResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
-from app.core.db import engine, SessionLocal
 from app.api.v1 import admin, auth, consultations, doctors, payments, prescriptions, users
-from app.models import *
+from app.core.db import SessionLocal, engine
 
 
 @asynccontextmanager
@@ -41,7 +41,6 @@ async def readiness():
         )
 
 
-
 @app.get("/metrics", include_in_schema=False)
 async def metrics():
     return Response(
@@ -52,4 +51,3 @@ async def metrics():
 
 for module in (auth, users, doctors, consultations, prescriptions, payments, admin):
     app.include_router(module.router, prefix="/api/v1")
-

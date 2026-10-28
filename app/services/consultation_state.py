@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import Conflict, Forbidden
@@ -29,9 +27,13 @@ async def transition(
 
     if actor.role == "doctor":
         # assigned doctor check
-        from app.models.doctor import Doctor
         from sqlalchemy import select
-        d = (await db.execute(select(Doctor).where(Doctor.user_id == actor.id))).scalar_one_or_none()
+
+        from app.models.doctor import Doctor
+
+        d = (
+            await db.execute(select(Doctor).where(Doctor.user_id == actor.id))
+        ).scalar_one_or_none()
         if not d or d.id != consultation.doctor_id:
             raise Forbidden("not_assigned_doctor")
     elif actor.role == "patient":

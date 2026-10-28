@@ -1,15 +1,15 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
-from datetime import datetime, timedelta, timezone
-from app.models.slot import AvailabilitySlot
 from sqlalchemy import select
 
 from app.core.errors import AppError
 from app.models.audit import AuditLog
 from app.models.consultation import Consultation
 from app.models.doctor import Doctor
+from app.models.slot import AvailabilitySlot
 from app.models.user import User
 from app.services.consultation_state import ALLOWED, transition
 
@@ -41,9 +41,7 @@ async def test_invalid_transition_raises_conflict(db, doctor_user, slot):
 
 
 @pytest.mark.asyncio
-async def test_patient_cannot_transition_another_patients_consultation(
-    db, doctor_user, slot
-):
+async def test_patient_cannot_transition_another_patients_consultation(db, doctor_user, slot):
     _, doctor = doctor_user
     patient_a = User(
         email=f"a{uuid.uuid4().hex}@test.com",
@@ -95,7 +93,10 @@ async def test_assigned_doctor_can_confirm_consultation(db, doctor_user, slot):
     await db.flush()
 
     await transition(
-        db, consultation, "CONFIRMED", doctor_user_obj,
+        db,
+        consultation,
+        "CONFIRMED",
+        doctor_user_obj,
         request_id="test-request",
     )
 
@@ -170,7 +171,10 @@ async def test_transition_creates_audit_log(db, doctor_user, slot):
     await db.flush()
 
     await transition(
-        db, consultation, "CANCELLED", patient,
+        db,
+        consultation,
+        "CANCELLED",
+        patient,
         request_id="audit-test",
     )
     await db.flush()
@@ -192,7 +196,7 @@ async def test_transition_creates_audit_log(db, doctor_user, slot):
 @pytest_asyncio.fixture
 async def slot(db, doctor_user):
     _, doctor = doctor_user
-    start = datetime.now(timezone.utc) + timedelta(days=1)
+    start = datetime.now(UTC) + timedelta(days=1)
     slot = AvailabilitySlot(
         doctor_id=doctor.id,
         start_time=start,

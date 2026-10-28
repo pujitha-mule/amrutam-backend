@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampedMixin, uuid_pk
@@ -20,5 +19,9 @@ class User(Base, TimestampedMixin):
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    doctor = relationship("Doctor", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    profile = relationship(
+        "Profile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    doctor = relationship(
+        "Doctor", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )

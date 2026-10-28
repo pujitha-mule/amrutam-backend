@@ -1,3 +1,4 @@
+
 import secrets
 import uuid
 
@@ -7,20 +8,31 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import current_user
+from app.core.config import settings
 from app.core.db import get_session
 from app.core.errors import Conflict, Unauthorized
 from app.core.rate_limit import rate_limit
 from app.core.security import (
-    create_access_token, create_mfa_challenge_token, create_refresh_token,
-    decode_token, decrypt_mfa_secret, encrypt_mfa_secret, hash_password,
-    utcnow, verify_password, verify_totp,
+    create_access_token,
+    create_mfa_challenge_token,
+    create_refresh_token,
+    decode_token,
+    decrypt_mfa_secret,
+    encrypt_mfa_secret,
+    hash_password,
+    utcnow,
+    verify_password,
+    verify_totp,
 )
-from app.core.config import settings
 from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import (
-    LoginRequest, MfaVerifyRequest, RefreshRequest, RegisterRequest, TokenResponse,
+    LoginRequest,
+    MfaVerifyRequest,
+    RefreshRequest,
+    RegisterRequest,
+    TokenResponse,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -51,10 +63,13 @@ async def register(
 
     jti = secrets.token_hex(16)
     refresh = create_refresh_token(str(user.id), jti)
-    db.add(RefreshToken(
-        jti=jti, user_id=user.id,
-        expires_at=utcnow().replace(year=utcnow().year + 1),
-    ))
+    db.add(
+        RefreshToken(
+            jti=jti,
+            user_id=user.id,
+            expires_at=utcnow().replace(year=utcnow().year + 1),
+        )
+    )
     await db.commit()
 
     return TokenResponse(
@@ -81,17 +96,21 @@ async def login(
 
     if user.mfa_enabled:
         return TokenResponse(
-            access_token="", refresh_token=None,
+            access_token="",
+            refresh_token=None,
             mfa_required=True,
             challenge_token=create_mfa_challenge_token(str(user.id)),
         )
 
     jti = secrets.token_hex(16)
     refresh = create_refresh_token(str(user.id), jti)
-    db.add(RefreshToken(
-        jti=jti, user_id=user.id,
-        expires_at=utcnow().replace(year=utcnow().year + 1),
-    ))
+    db.add(
+        RefreshToken(
+            jti=jti,
+            user_id=user.id,
+            expires_at=utcnow().replace(year=utcnow().year + 1),
+        )
+    )
     user.last_login_at = utcnow()
     await db.commit()
 
@@ -106,7 +125,8 @@ async def mfa_verify(req: MfaVerifyRequest, db: AsyncSession = Depends(get_sessi
     try:
         payload = decode_token(req.challenge_token)
     except ValueError:
-        raise Unauthorized("invalid_challenge")
+        raise Unauthorized("invalid_challenge") from None
+
     if payload.get("type") != "mfa_challenge":
         raise Unauthorized("invalid_challenge_type")
 
@@ -119,10 +139,13 @@ async def mfa_verify(req: MfaVerifyRequest, db: AsyncSession = Depends(get_sessi
 
     jti = secrets.token_hex(16)
     refresh = create_refresh_token(str(user.id), jti)
-    db.add(RefreshToken(
-        jti=jti, user_id=user.id,
-        expires_at=utcnow().replace(year=utcnow().year + 1),
-    ))
+    db.add(
+        RefreshToken(
+            jti=jti,
+            user_id=user.id,
+            expires_at=utcnow().replace(year=utcnow().year + 1),
+        )
+    )
     user.last_login_at = utcnow()
     await db.commit()
 
@@ -137,7 +160,8 @@ async def refresh(req: RefreshRequest, db: AsyncSession = Depends(get_session)):
     try:
         payload = decode_token(req.refresh_token, settings.JWT_REFRESH_SECRET)
     except ValueError:
-        raise Unauthorized("invalid_refresh")
+        raise Unauthorized("invalid_refresh") from None
+
     if payload.get("type") != "refresh":
         raise Unauthorized("wrong_token_type")
 
@@ -152,10 +176,13 @@ async def refresh(req: RefreshRequest, db: AsyncSession = Depends(get_session)):
     row.revoked = True
     jti = secrets.token_hex(16)
     new_refresh = create_refresh_token(str(user.id), jti)
-    db.add(RefreshToken(
-        jti=jti, user_id=user.id,
-        expires_at=utcnow().replace(year=utcnow().year + 1),
-    ))
+    db.add(
+        RefreshToken(
+            jti=jti,
+            user_id=user.id,
+            expires_at=utcnow().replace(year=utcnow().year + 1),
+        )
+    )
     await db.commit()
 
     return TokenResponse(
@@ -170,6 +197,7 @@ async def logout(req: RefreshRequest, db: AsyncSession = Depends(get_session)):
         payload = decode_token(req.refresh_token, settings.JWT_REFRESH_SECRET)
     except ValueError:
         return
+
     row = await db.get(RefreshToken, payload["jti"])
     if row:
         row.revoked = True

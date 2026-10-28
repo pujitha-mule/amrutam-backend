@@ -1,9 +1,7 @@
-
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import pytest
 import pytest_asyncio
 
 from app.models.slot import AvailabilitySlot
@@ -28,9 +26,8 @@ async def slot(db, doctor_user):
 
     slot = AvailabilitySlot(
         doctor_id=doctor.id,
-        start_time=datetime.now(timezone.utc) + timedelta(days=1),
-        end_time=datetime.now(timezone.utc)
-        + timedelta(days=1, hours=1),
+        start_time=datetime.now(UTC) + timedelta(days=1),
+        end_time=datetime.now(UTC) + timedelta(days=1, hours=1),
     )
 
     db.add(slot)
@@ -41,12 +38,8 @@ async def slot(db, doctor_user):
 
 
 async def test_two_patients_one_slot(client, slot):
-    token_a = await _register(
-        client, f"a{uuid.uuid4().hex[:6]}@t.com"
-    )
-    token_b = await _register(
-        client, f"b{uuid.uuid4().hex[:6]}@t.com"
-    )
+    token_a = await _register(client, f"a{uuid.uuid4().hex[:6]}@t.com")
+    token_b = await _register(client, f"b{uuid.uuid4().hex[:6]}@t.com")
 
     async def book(token, key):
         return await client.post(
@@ -63,15 +56,11 @@ async def test_two_patients_one_slot(client, slot):
         book(token_b, "kb"),
     )
 
-    assert sorted(
-        [response_a.status_code, response_b.status_code]
-    ) == [201, 409]
+    assert sorted([response_a.status_code, response_b.status_code]) == [201, 409]
 
 
 async def test_same_key_same_body_replays(client, slot):
-    token = await _register(
-        client, f"r{uuid.uuid4().hex[:6]}@t.com"
-    )
+    token = await _register(client, f"r{uuid.uuid4().hex[:6]}@t.com")
 
     async def post():
         return await client.post(
@@ -91,25 +80,20 @@ async def test_same_key_same_body_replays(client, slot):
     assert response_1.json()["id"] == response_2.json()["id"]
 
 
-async def test_same_key_different_body_409(
-    client, slot, db, doctor_user
-):
+async def test_same_key_different_body_409(client, slot, db, doctor_user):
     _, doctor = doctor_user
 
     other_slot = AvailabilitySlot(
         doctor_id=doctor.id,
-        start_time=datetime.now(timezone.utc) + timedelta(days=3),
-        end_time=datetime.now(timezone.utc)
-        + timedelta(days=3, hours=1),
+        start_time=datetime.now(UTC) + timedelta(days=3),
+        end_time=datetime.now(UTC) + timedelta(days=3, hours=1),
     )
 
     db.add(other_slot)
     await db.commit()
     await db.refresh(other_slot)
 
-    token = await _register(
-        client, f"x{uuid.uuid4().hex[:6]}@t.com"
-    )
+    token = await _register(client, f"x{uuid.uuid4().hex[:6]}@t.com")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -132,12 +116,8 @@ async def test_same_key_different_body_409(
 
 
 async def test_cross_patient_access_returns_404(client, slot):
-    token_a = await _register(
-        client, f"p1{uuid.uuid4().hex[:6]}@t.com"
-    )
-    token_b = await _register(
-        client, f"p2{uuid.uuid4().hex[:6]}@t.com"
-    )
+    token_a = await _register(client, f"p1{uuid.uuid4().hex[:6]}@t.com")
+    token_b = await _register(client, f"p2{uuid.uuid4().hex[:6]}@t.com")
 
     response = await client.post(
         "/api/v1/consultations",
@@ -160,9 +140,7 @@ async def test_cross_patient_access_returns_404(client, slot):
 
 
 async def test_booking_missing_slot_returns_404(client):
-    token = await _register(
-        client, f"missing{uuid.uuid4().hex[:8]}@t.com"
-    )
+    token = await _register(client, f"missing{uuid.uuid4().hex[:8]}@t.com")
 
     response = await client.post(
         "/api/v1/consultations",
@@ -180,16 +158,14 @@ async def test_booking_past_slot_returns_409(client, db, doctor_user):
     _, doctor = doctor_user
     past_slot = AvailabilitySlot(
         doctor_id=doctor.id,
-        start_time=datetime.now(timezone.utc) - timedelta(days=2),
-        end_time=datetime.now(timezone.utc) - timedelta(days=2) + timedelta(hours=1),
+        start_time=datetime.now(UTC) - timedelta(days=2),
+        end_time=datetime.now(UTC) - timedelta(days=2) + timedelta(hours=1),
     )
     db.add(past_slot)
     await db.commit()
     await db.refresh(past_slot)
 
-    token = await _register(
-        client, f"past{uuid.uuid4().hex[:8]}@t.com"
-    )
+    token = await _register(client, f"past{uuid.uuid4().hex[:8]}@t.com")
 
     response = await client.post(
         "/api/v1/consultations",

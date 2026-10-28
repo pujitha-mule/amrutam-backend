@@ -1,4 +1,3 @@
-
 import uuid
 
 from sqlalchemy import select
@@ -21,14 +20,10 @@ async def book(
     slot_id: uuid.UUID,
     idem: IdempotencyRecord,
 ) -> Consultation:
-    async with (
-        db.begin_nested() if db.in_transaction() else db.begin()
-    ):
+    async with db.begin_nested() if db.in_transaction() else db.begin():
         slot = (
             await db.execute(
-                select(AvailabilitySlot)
-                .where(AvailabilitySlot.id == slot_id)
-                .with_for_update()
+                select(AvailabilitySlot).where(AvailabilitySlot.id == slot_id).with_for_update()
             )
         ).scalar_one_or_none()
 
@@ -36,9 +31,7 @@ async def book(
             raise NotFound("slot_not_found")
 
         if slot.is_booked:
-            BOOKING_CONFLICTS.labels(
-                reason="already_booked"
-            ).inc()
+            BOOKING_CONFLICTS.labels(reason="already_booked").inc()
             raise Conflict("slot_already_booked")
 
         if slot.start_time <= utcnow():
@@ -73,9 +66,7 @@ async def book(
             await db.flush()
         except IntegrityError as e:
             if "ux_slot_active_consultation" in str(e.orig):
-                BOOKING_CONFLICTS.labels(
-                    reason="unique_index_race"
-                ).inc()
+                BOOKING_CONFLICTS.labels(reason="unique_index_race").inc()
                 raise Conflict("slot_already_booked") from e
             raise
 
@@ -86,4 +77,3 @@ async def book(
         }
 
     return consultation
-

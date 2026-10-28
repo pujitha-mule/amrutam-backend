@@ -1,4 +1,3 @@
-
 import uuid
 
 from fastapi import APIRouter, Depends, Header, Request
@@ -8,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import current_user, get_request_id, require_role
 from app.core.db import get_session
-from app.core.errors import Conflict, NotFound
+from app.core.errors import NotFound
 from app.core.metrics import IDEMPOTENT_REPLAYS
 from app.models.consultation import Consultation
 from app.models.user import User
@@ -29,9 +28,7 @@ async def book_consultation(
     db: AsyncSession = Depends(get_session),
 ):
     body = await request.body()
-    req_hash = idem_svc.compute_request_hash(
-        request.method, request.url.path, body
-    )
+    req_hash = idem_svc.compute_request_hash(request.method, request.url.path, body)
 
     # End the transaction started by authentication before starting
     # the atomic booking transaction.
@@ -39,9 +36,7 @@ async def book_consultation(
         await db.commit()
 
     async with db.begin():
-        idem, replay = await idem_svc.acquire(
-            db, user.id, idempotency_key, req_hash
-        )
+        idem, replay = await idem_svc.acquire(db, user.id, idempotency_key, req_hash)
 
         if replay:
             IDEMPOTENT_REPLAYS.labels(route="/consultations").inc()
@@ -70,11 +65,7 @@ async def my_consultations(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    stmt = (
-        select(Consultation)
-        .order_by(Consultation.created_at.desc())
-        .limit(100)
-    )
+    stmt = select(Consultation).order_by(Consultation.created_at.desc()).limit(100)
 
     if user.role == "patient":
         stmt = stmt.where(Consultation.patient_id == user.id)
@@ -82,9 +73,7 @@ async def my_consultations(
         from app.models.doctor import Doctor
 
         doctor = (
-            await db.execute(
-                select(Doctor).where(Doctor.user_id == user.id)
-            )
+            await db.execute(select(Doctor).where(Doctor.user_id == user.id))
         ).scalar_one_or_none()
 
         if doctor is None:
@@ -113,9 +102,7 @@ async def get_consultation(
         from app.models.doctor import Doctor
 
         doctor = (
-            await db.execute(
-                select(Doctor).where(Doctor.user_id == user.id)
-            )
+            await db.execute(select(Doctor).where(Doctor.user_id == user.id))
         ).scalar_one_or_none()
 
         if doctor is None or consultation.doctor_id != doctor.id:
@@ -124,9 +111,7 @@ async def get_consultation(
     return consultation
 
 
-async def _transition_endpoint(
-    consultation_id, target, request, user, db
-):
+async def _transition_endpoint(consultation_id, target, request, user, db):
     consultation = await db.get(Consultation, consultation_id)
 
     if consultation is None:
@@ -154,9 +139,7 @@ async def confirm(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    return await _transition_endpoint(
-        consultation_id, "CONFIRMED", request, user, db
-    )
+    return await _transition_endpoint(consultation_id, "CONFIRMED", request, user, db)
 
 
 @router.post("/{consultation_id}/start")
@@ -166,9 +149,7 @@ async def start(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    return await _transition_endpoint(
-        consultation_id, "IN_PROGRESS", request, user, db
-    )
+    return await _transition_endpoint(consultation_id, "IN_PROGRESS", request, user, db)
 
 
 @router.post("/{consultation_id}/complete")
@@ -178,9 +159,7 @@ async def complete(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    return await _transition_endpoint(
-        consultation_id, "COMPLETED", request, user, db
-    )
+    return await _transition_endpoint(consultation_id, "COMPLETED", request, user, db)
 
 
 @router.post("/{consultation_id}/cancel")
@@ -190,6 +169,4 @@ async def cancel(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    return await _transition_endpoint(
-        consultation_id, "CANCELLED", request, user, db
-    )
+    return await _transition_endpoint(consultation_id, "CANCELLED", request, user, db)

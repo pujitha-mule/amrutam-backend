@@ -27,7 +27,9 @@ async def issue(
     if actor.role != "doctor":
         raise Forbidden("only_doctor_can_prescribe")
 
-    doctor = (await db.execute(select(Doctor).where(Doctor.user_id == actor.id))).scalar_one_or_none()
+    doctor = (
+        await db.execute(select(Doctor).where(Doctor.user_id == actor.id))
+    ).scalar_one_or_none()
     if not doctor or doctor.id != consult.doctor_id:
         raise Forbidden("not_assigned_doctor")
     if consult.status != "COMPLETED":

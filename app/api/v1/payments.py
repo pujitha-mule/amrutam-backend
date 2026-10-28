@@ -1,12 +1,11 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import current_user
 from app.core.db import get_session
-from app.core.errors import Forbidden, NotFound, Unauthorized
+from app.core.errors import NotFound, Unauthorized
 from app.core.security import verify_webhook_signature
 from app.models.consultation import Consultation
 from app.models.payment import Payment
@@ -16,7 +15,9 @@ from app.schemas.payment import PaymentOut
 router = APIRouter(tags=["payments"])
 
 
-@router.post("/consultations/{consultation_id}/payments", response_model=PaymentOut, status_code=201)
+@router.post(
+    "/consultations/{consultation_id}/payments", response_model=PaymentOut, status_code=201
+)
 async def create_payment(
     consultation_id: uuid.UUID,
     amount: float,
@@ -41,6 +42,7 @@ async def webhook(request: Request, db: AsyncSession = Depends(get_session)):
         raise Unauthorized("invalid_signature")
 
     from sqlalchemy import text
+
     payload = await request.json()
     event_id = payload.get("event_id")
     if not event_id:
@@ -48,7 +50,9 @@ async def webhook(request: Request, db: AsyncSession = Depends(get_session)):
 
     # Dedupe
     r = await db.execute(
-        text("INSERT INTO processed_webhooks(provider_event_id) VALUES (:e) ON CONFLICT DO NOTHING"),
+        text(
+            "INSERT INTO processed_webhooks(provider_event_id) VALUES (:e) ON CONFLICT DO NOTHING"
+        ),
         {"e": event_id},
     )
     if r.rowcount == 0:
